@@ -18,7 +18,7 @@ class Game:
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         pg.key.set_repeat(250, 50) # Allows us to hold dowW keys to move, etc.
-        self.load_data() # For saving games later
+        self.load_data()
 
     def load_data(self):
         game_folder = path.dirname(__file__)
