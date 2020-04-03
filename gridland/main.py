@@ -9,7 +9,7 @@ import sys
 from os import path
 from settings import *
 from sprites import *
-from tilemap import Map, Camera
+from tilemap import TiledMap, Camera
 
 class Game:
     def __init__(self):
@@ -22,19 +22,32 @@ class Game:
 
     def load_data(self):
         game_folder = path.dirname(__file__)
-        self.map = Map(path.join(game_folder, "map.txt"))
+        map_folder = path.join(game_folder, "maps")
+        self.map = TiledMap(path.join(map_folder, "AI-map.tmx"))
+        self.map_img = self.map.make_map()
+        self.map_rect = self.map_img.get_rect()
+        #self.map = Map(path.join(game_folder, "map.txt"))
+
 
     def new(self):
         # initialize all variables and do all the setup for a new game
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
-        # spawn walls based on text file
-        for row, tiles in enumerate(self.map.data):
-            for column, tile in enumerate(tiles):
-                if tile == "1":
-                    Wall(self, column, row)
-                if tile == "P":
-                    self.player = Player(self, column, row)
+       # spawn walls based on text file
+       # for row, tiles in enumerate(self.map.data):
+       #     for column, tile in enumerate(tiles):
+       #         if tile == "1":
+       #             Wall(self, column, row)
+       #         if tile == "P":
+       #             self.player = Player(self, column, row)
+        for tile_object in self.map.tmxdata.objects:
+            if tile_object.name == "player":
+                print("player location: ", tile_object.x, tile_object.y)
+                self.player = Player(self, tile_object.x, tile_object.y)
+            if tile_object.name == "wall":
+                Obstacle(self, tile_object.x, tile_object.y, 
+                               tile_object.width, tile_object.height)
+
         self.camera = Camera(self.map.width, self.map.height)
 
     def run(self):
@@ -65,6 +78,7 @@ class Game:
     def draw(self):
         self.screen.fill(BGCOLOR)
         self.draw_grid()
+        self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
         #self.all_sprites.draw(self.screen)
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))

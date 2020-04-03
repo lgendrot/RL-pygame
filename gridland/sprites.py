@@ -46,6 +46,8 @@ class Player(pg.sprite.Sprite):
         self.direction = "forward"
 
     def move(self, dx=0, dy=0):
+        dx *= TILESIZE
+        dy *= TILESIZE
         if not self.collide_with_walls(dx, dy):
             if dx == 0 and dy > 0:
                 self.direction = "forward"
@@ -58,17 +60,17 @@ class Player(pg.sprite.Sprite):
             
             self.x += dx
             self.y += dy
-
+            
     def collide_with_walls(self, dx, dy):
         for wall in self.game.walls:
-            if self.x + dx == wall.x and self.y + dy == wall.y:
+            if wall.rect.collidepoint(self.x + dx, self.y + dy):
                 return True
         return False
 
     def update(self):
         self.image = self.animation_dict['idle'][self.direction][0]
-        self.rect.x = self.x * TILESIZE
-        self.rect.y = self.y * TILESIZE
+        self.rect.x = self.x 
+        self.rect.y = self.y
 
 class Wall(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -82,3 +84,16 @@ class Wall(pg.sprite.Sprite):
         self.y = y
         self.rect.x = x * TILESIZE
         self.rect.y = y * TILESIZE
+
+class Obstacle(pg.sprite.Sprite):
+    def __init__(self, game, x, y, w, h):
+        self.groups = game.walls,
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image = pg.Surface((TILESIZE, TILESIZE))
+        self.image.fill(GREEN)
+        self.rect = pg.Rect(x, y, w, h) 
+        self.x = int(x/TILESIZE)
+        self.y = int(y/TILESIZE)
+        self.rect.x = x
+        self.rect.y = y

@@ -1,6 +1,6 @@
 import pygame as pg
 from settings import *
-
+import pytmx
 
 class Map:
     def __init__(self, filename):
@@ -13,6 +13,29 @@ class Map:
         self.width = self.tilewidth * TILESIZE
         self.height = self.tileheight * TILESIZE
 
+class TiledMap:
+    def __init__(self, filename):
+        tm = pytmx.load_pygame(filename, pixelalpha=True)
+        self.width = tm.width * tm.tilewidth # Similar to self.tilewidth * TILESIZE above
+        self.height = tm.height * tm.tileheight
+        self.tmxdata = tm
+
+
+    def render(self, surface):
+        ti = self.tmxdata.get_tile_image_by_gid
+        for layer in self.tmxdata.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    tile = ti(gid)
+                    if tile:
+                        surface.blit(tile, (x*self.tmxdata.tilewidth, 
+                                            y*self.tmxdata.tileheight))
+
+    def make_map(self):
+        temp_surface = pg.Surface((self.width, self.height))
+        self.render(temp_surface)
+        return temp_surface
+        
 
 class Camera:
     def __init__(self, width, height):
@@ -26,6 +49,8 @@ class Camera:
         # the offset is calculated and applied to the camera in update()
         return entity.rect.move(self.camera.topleft)
 
+    def apply_rect(self, rect):
+        return rect.move(self.camera.topleft)
 
     def update(self, target):
         # the offset -- how much we should move all other sprites in the scene
