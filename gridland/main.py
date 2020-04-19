@@ -33,6 +33,7 @@ class Game:
         # initialize all variables and do all the setup for a new game
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
+        self.items = pg.sprite.Group()
        # spawn walls based on text file
        # for row, tiles in enumerate(self.map.data):
        #     for column, tile in enumerate(tiles):
@@ -47,6 +48,10 @@ class Game:
             if tile_object.name == "wall":
                 Obstacle(self, tile_object.x, tile_object.y, 
                                tile_object.width, tile_object.height)
+            if tile_object.name == "carrot":
+                Carrot(self, tile_object.x, tile_object.y) 
+            if tile_object.name == "chest":
+                Chest(self, tile_object.x, tile_object.y)
 
         self.camera = Camera(self.map.width, self.map.height)
 
@@ -61,7 +66,9 @@ class Game:
             self.draw()
 
     def quit(self):
+        self.playing = False
         pg.quit()
+        pg.display.quit()
         sys.exit()
 
     def update(self):

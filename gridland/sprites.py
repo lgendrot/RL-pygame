@@ -44,6 +44,7 @@ class Player(pg.sprite.Sprite):
         self.x = x
         self.y = y
         self.direction = "forward"
+        self.carrot_count = 0
 
     def move(self, dx=0, dy=0):
         dx *= TILESIZE
@@ -61,9 +62,19 @@ class Player(pg.sprite.Sprite):
             self.x += dx
             self.y += dy
             
+                
+    
+            
     def collide_with_walls(self, dx, dy):
         for wall in self.game.walls:
             if wall.rect.collidepoint(self.x + dx, self.y + dy):
+                return True
+        return False
+
+    def collide_with_items(self):
+        for item in self.game.items:
+            if item.rect.collidepoint(self.x, self.y):
+                item.collide(self)
                 return True
         return False
 
@@ -71,6 +82,49 @@ class Player(pg.sprite.Sprite):
         self.image = self.animation_dict['idle'][self.direction][0]
         self.rect.x = self.x 
         self.rect.y = self.y
+        self.collide_with_items()
+
+class Item(pg.sprite.Sprite):
+    def __init__(self, game, x, y, img_name=None):
+        self.groups = game.all_sprites, game.items
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image = self.load_image(img_name)
+        self.rect = self.image.get_rect()
+        self.x = int(x/TILESIZE)
+        self.y = int(y/TILESIZE)
+        self.rect.x = x 
+        self.rect.y = y
+        self.active = True
+    
+    def collide(self, sprite):
+        pass
+
+    def load_image(self, img_name):
+        if img_name:
+            return pg.image.load(os.path.join(IMAGE_FOLDER, img_name))
+        return pg.Surface((TILESIZE, TILESIZE), pg.SRCALPHA)
+
+class Carrot(Item):
+    def __init__(self, game, x, y):
+        super().__init__(game, x, y, "carrot.png")
+        self._layer = 1
+    
+    def collide(self, sprite):
+        sprite.carrot_count += 1
+        self.kill()
+               
+
+class Chest(Item):
+    def __init__(self, game, x, y):
+        super().__init__(game, x, y)
+        self.carrot_count = 0
+
+    def collide(self, sprite):
+        self.carrot_count += sprite.carrot_count
+        sprite.carrot_count = 0
+        print("Carrots in chest: ", self.carrot_count)
+        
 
 class Wall(pg.sprite.Sprite):
     def __init__(self, game, x, y):
