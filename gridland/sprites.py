@@ -45,6 +45,7 @@ class Player(pg.sprite.Sprite):
         self.y = y
         self.direction = "forward"
         self.carrot_count = 0
+        self.score = 0
 
     def move(self, dx=0, dy=0):
         dx *= TILESIZE
@@ -61,6 +62,10 @@ class Player(pg.sprite.Sprite):
             
             self.x += dx
             self.y += dy
+        self.score -= MOVEMENT_COST
+
+
+
             
                 
     

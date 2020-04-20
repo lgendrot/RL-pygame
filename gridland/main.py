@@ -11,6 +11,10 @@ from settings import *
 from sprites import *
 from tilemap import TiledMap, Camera
 
+
+    
+
+
 class Game:
     def __init__(self):
         pg.init()
@@ -89,6 +93,9 @@ class Game:
         #self.all_sprites.draw(self.screen)
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
+
+        self.screen.blit(self.score_surface(self.player.score), (0, 0))
+
         pg.display.flip()
 
     def events(self):
@@ -107,6 +114,13 @@ class Game:
                     self.player.move(dy=-1)
                 if event.key == pg.K_DOWN:
                     self.player.move(dy=1)
+
+    def score_surface(self, score):
+        return pg.font.Font(pg.font.get_default_font(), 24).render(str(score), True, (0, 0, 255))
+
+        
+
+
 
     def show_start_screen(self):
         pass
