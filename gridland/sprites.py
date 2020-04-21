@@ -46,6 +46,7 @@ class Player(pg.sprite.Sprite):
         self.direction = "forward"
         self.carrot_count = 0
         self.score = 0
+        self.total_actions = 0
 
     def move(self, dx=0, dy=0):
         dx *= TILESIZE
@@ -63,6 +64,7 @@ class Player(pg.sprite.Sprite):
             self.x += dx
             self.y += dy
         self.score -= MOVEMENT_COST
+        self.total_actions += 1
 
 
 
@@ -88,6 +90,9 @@ class Player(pg.sprite.Sprite):
         self.rect.x = self.x 
         self.rect.y = self.y
         self.collide_with_items()
+        if self.total_actions >= MAX_ACTIONS:
+            self.score -= UNFINISHED_COST
+            self.game.playing = False
 
 class Item(pg.sprite.Sprite):
     def __init__(self, game, x, y, img_name=None):
@@ -113,6 +118,7 @@ class Item(pg.sprite.Sprite):
 class Carrot(Item):
     def __init__(self, game, x, y):
         super().__init__(game, x, y, "carrot.png")
+        self.groups = game.all_sprites, game.carrots, game.items
         self._layer = 1
     
     def collide(self, sprite):
@@ -127,8 +133,11 @@ class Chest(Item):
 
     def collide(self, sprite):
         self.carrot_count += sprite.carrot_count
+        sprite.score += (CARROT_REWARD * sprite.carrot_count)
         sprite.carrot_count = 0
-        print("Carrots in chest: ", self.carrot_count)
+        if self.carrot_count == sprite.game.total_carrots:
+            sprite.game.playing = False
+        
         
 
 class Wall(pg.sprite.Sprite):

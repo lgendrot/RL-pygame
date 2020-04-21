@@ -17,12 +17,15 @@ from tilemap import TiledMap, Camera
 
 class Game:
     def __init__(self):
-        pg.init()
+        #pg.init()
+        pg.display.init()
+        pg.font.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         pg.key.set_repeat(250, 50) # Allows us to hold dowW keys to move, etc.
         self.load_data()
+        self.total_carrots = 0
 
     def load_data(self):
         game_folder = path.dirname(__file__)
@@ -38,6 +41,7 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.items = pg.sprite.Group()
+        self.carrots = pg.sprite.Group()
        # spawn walls based on text file
        # for row, tiles in enumerate(self.map.data):
        #     for column, tile in enumerate(tiles):
@@ -54,6 +58,7 @@ class Game:
                                tile_object.width, tile_object.height)
             if tile_object.name == "carrot":
                 Carrot(self, tile_object.x, tile_object.y) 
+                self.total_carrots += 1
             if tile_object.name == "chest":
                 Chest(self, tile_object.x, tile_object.y)
 
@@ -94,7 +99,7 @@ class Game:
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
-        self.screen.blit(self.score_surface(self.player.score), (0, 0))
+        self.screen.blit(self.score_surface(self.player), (0, 0))
 
         pg.display.flip()
 
@@ -115,8 +120,9 @@ class Game:
                 if event.key == pg.K_DOWN:
                     self.player.move(dy=1)
 
-    def score_surface(self, score):
-        return pg.font.Font(pg.font.get_default_font(), 24).render(str(score), True, (0, 0, 255))
+    def score_surface(self, player):
+        template = "Score: {}, Remaining Moves: {}"
+        return pg.font.Font(pg.font.get_default_font(), 24).render(template.format(player.score, MAX_ACTIONS-player.total_actions), True, (0, 0, 255))
 
         
 
@@ -126,7 +132,12 @@ class Game:
         pass
 
     def show_go_screen(self):
-        pass
+        self.go_screen = True
+        while self.go_screen:
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    self.go_screen = False
+
 
 # create the game object
 g = Game()
