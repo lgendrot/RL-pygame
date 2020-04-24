@@ -5,14 +5,14 @@
 
 import pygame as pg
 import sys
-
+import queue
 from os import path
 from settings import *
 from sprites import *
 from tilemap import TiledMap, Camera
+from controller import AIController
 
-
-    
+#TODO: Make WIDTH and HEIGHT automatic by loading map data first    
 
 
 class Game:
@@ -63,6 +63,19 @@ class Game:
                 Chest(self, tile_object.x, tile_object.y)
 
         self.camera = Camera(self.map.width, self.map.height)
+        # Instantiate queues
+        # inputq = Queue()
+        # outputq = Queue()
+        eventid = pg.USEREVENT+1
+        pg.time.set_timer(eventid, 1000)
+        self.controller = AIController()
+        self.controller.start()
+
+        # must remember to:
+            # 1. Catch events in self.event()
+            # 2. Join Queues and Multiprocess in self.quit()
+
+
 
     def run(self):
         # game loop - set self.playing = False to end the game
@@ -70,12 +83,15 @@ class Game:
         self.playing = True
         while self.playing:
             self.dt = self.clock.tick(FPS) / 1000
+            self.queued_events()
             self.events()
             self.update()
             self.draw()
 
     def quit(self):
         self.playing = False
+        self.controller.inqueue.put(None)
+        self.controller.join()
         pg.quit()
         pg.display.quit()
         sys.exit()
@@ -84,6 +100,7 @@ class Game:
         # update portion of the game loop
         self.all_sprites.update()
         self.camera.update(self.player)
+        
 
     def draw_grid(self):
         for x in range(0, WIDTH, TILESIZE):
@@ -119,10 +136,20 @@ class Game:
                     self.player.move(dy=-1)
                 if event.key == pg.K_DOWN:
                     self.player.move(dy=1)
+            if event.type == pg.USEREVENT+1:
+                print("Adding to queue")
+                self.controller.inqueue.put((self.player.rect.x, self.player.rect.y))
+
+    def queued_events(self):
+        while not self.controller.outqueue.empty():
+            event = self.controller.outqueue.get()
+
+            pg.event.post(pg.event.Event(event[0], key=event[1]))
 
     def score_surface(self, player):
         template = "Score: {}, Remaining Moves: {}"
-        return pg.font.Font(pg.font.get_default_font(), 24).render(template.format(player.score, MAX_ACTIONS-player.total_actions), True, (0, 0, 255))
+        template = template.format(player.score, MAX_ACTIONS-player.total_actions) 
+        return pg.font.Font(pg.font.get_default_font(), 24).render(template, True, (0, 0, 255))
 
         
 
