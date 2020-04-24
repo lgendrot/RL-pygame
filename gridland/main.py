@@ -42,13 +42,6 @@ class Game:
         self.walls = pg.sprite.Group()
         self.items = pg.sprite.Group()
         self.carrots = pg.sprite.Group()
-       # spawn walls based on text file
-       # for row, tiles in enumerate(self.map.data):
-       #     for column, tile in enumerate(tiles):
-       #         if tile == "1":
-       #             Wall(self, column, row)
-       #         if tile == "P":
-       #             self.player = Player(self, column, row)
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 print("player location: ", tile_object.x, tile_object.y)
@@ -63,17 +56,11 @@ class Game:
                 Chest(self, tile_object.x, tile_object.y)
 
         self.camera = Camera(self.map.width, self.map.height)
-        # Instantiate queues
-        # inputq = Queue()
-        # outputq = Queue()
         eventid = pg.USEREVENT+1
         pg.time.set_timer(eventid, 1000)
         self.controller = AIController()
         self.controller.start()
 
-        # must remember to:
-            # 1. Catch events in self.event()
-            # 2. Join Queues and Multiprocess in self.quit()
 
 
 
@@ -112,7 +99,6 @@ class Game:
         self.screen.fill(BGCOLOR)
         self.draw_grid()
         self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
-        #self.all_sprites.draw(self.screen)
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
