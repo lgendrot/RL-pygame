@@ -17,6 +17,7 @@ class AIController(multiprocessing.Process):
         while True:
             observation = self.inqueue.get()
             if observation is None:
+                print("Quitting...")
                 break
 
             if observation[0] < 150:
@@ -24,7 +25,11 @@ class AIController(multiprocessing.Process):
             elif observation[1] < 300:
                 self.outqueue.put((pg.KEYDOWN, pg.K_DOWN))
 
-
+    def quit(self):
+        self.inqueue.put(None)
+        self.join()
+        
+        
         # Take from inqueue -> observation
         # Use observation to select next action
         # Post action to outqueue

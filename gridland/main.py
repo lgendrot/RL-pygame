@@ -64,6 +64,8 @@ class Game:
             self.events()
             self.update()
             self.draw()
+        if isinstance(self.player, AIPlayer):
+            self.player.controller.quit()
 
     def quit(self):
         self.playing = False
@@ -106,14 +108,25 @@ class Game:
         template = "Score: {}, Remaining Moves: {}"
         template = template.format(
             player.score, MAX_ACTIONS-player.total_actions)
-        return pg.font.Font(pg.font.get_default_font(), 24).render(template, True, (0, 0, 255))
+        return pg.font.Font(pg.font.get_default_font(), 18).render(template, True, (0, 0, 255))
 
     def show_start_screen(self):
         pass
 
+
+    def game_over_surface(self):
+        text = "Game Over! Press Any Key To Play Again"
+        return pg.font.Font(pg.font.get_default_font(), 24).render(text, True, (0, 0, 255))
+
+
+
     def show_go_screen(self):
         self.go_screen = True
+
         while self.go_screen:
+            go_surf = self.game_over_surface()
+            self.screen.blit(go_surf, (WIDTH/2-(go_surf.get_width()/2),HEIGHT/2))
+            pg.display.flip()
             for event in pg.event.get():
                 if event.type == pg.KEYDOWN:
                     self.go_screen = False

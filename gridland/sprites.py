@@ -110,7 +110,7 @@ class AIPlayer(Player):
     def __init__(self, game, x, y):
         super().__init__(game, x, y)
         eventid = pg.USEREVENT+1
-        pg.time.set_timer(eventid, 1000)
+        pg.time.set_timer(eventid, 200)
         
         self.controller = AIController()
         self.controller.start()
@@ -129,14 +129,12 @@ class AIPlayer(Player):
         elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
             quitting = True
         if quitting:
-            self.controller.inqueue.put(None)
-            self.controller.join()
+            self.controller.quit()
         
-        # Is this clugey? Making sure the AI player moves with input too 
+        # Is using super() clugey? 
         super().events(event)
  
         if event.type == pg.USEREVENT+1:
-            print("Adding to queue")
             self.controller.inqueue.put(self.observe())
         
 
