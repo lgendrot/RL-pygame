@@ -1,5 +1,6 @@
 import pygame as pg
 from settings import *
+from controller import AIController
 import os
 
 
@@ -28,7 +29,8 @@ class AnimationImages:
                                 image_dict[entry.name][direction] = []
                             image = pg.image.load(file.path).convert()
                             height, width = image.get_size()
-                            image = pg.transform.scale(image, (height*self.scale_factor, width*self.scale_factor))
+                            image = pg.transform.scale(image, (height*self.scale_factor,
+                                                               width*self.scale_factor))
                             image_dict[entry.name][direction].append(image)
         return image_dict
 
@@ -38,9 +40,10 @@ class Player(pg.sprite.Sprite):
         self.groups = game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
-        self.animation_dict = AnimationImages(os.path.join(os.path.dirname(__file__), "img/player")).images
-        self.image = self.animation_dict['idle']['forward'][0] 
-        self.rect = self.image.get_rect() # Sprite class expects self.rect
+        self.animation_dict = AnimationImages(os.path.join(
+            os.path.dirname(__file__), "img/player")).images
+        self.image = self.animation_dict['idle']['forward'][0]
+        self.rect = self.image.get_rect()  # Sprite class expects self.rect
         self.x = x
         self.y = y
         self.direction = "forward"
@@ -60,18 +63,12 @@ class Player(pg.sprite.Sprite):
                 self.direction = "left"
             elif dx == 0 and dy < 0:
                 self.direction = "back"
-            
+
             self.x += dx
             self.y += dy
         self.score -= MOVEMENT_COST
         self.total_actions += 1
 
-
-
-            
-                
-    
-            
     def collide_with_walls(self, dx, dy):
         for wall in self.game.walls:
             if wall.rect.collidepoint(self.x + dx, self.y + dy):
@@ -87,12 +84,73 @@ class Player(pg.sprite.Sprite):
 
     def update(self):
         self.image = self.animation_dict['idle'][self.direction][0]
-        self.rect.x = self.x 
+        self.rect.x = self.x
         self.rect.y = self.y
         self.collide_with_items()
         if self.total_actions >= MAX_ACTIONS:
             self.score -= UNFINISHED_COST
             self.game.playing = False
+
+    def events(self, event):
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_ESCAPE:
+                self.game.quit()
+            
+            if event.key == pg.K_LEFT:
+                self.move(dx=-1)
+            if event.key == pg.K_RIGHT:
+                self.move(dx=1)
+            if event.key == pg.K_UP:
+                self.move(dy=-1)
+            if event.key == pg.K_DOWN:
+                self.move(dy=1)
+
+
+class AIPlayer(Player):
+    def __init__(self, game, x, y):
+        super().__init__(game, x, y)
+        eventid = pg.USEREVENT+1
+        pg.time.set_timer(eventid, 1000)
+        
+        self.controller = AIController()
+        self.controller.start()
+
+    def update(self):
+        self.queued_events()
+        super().update()
+
+
+
+    def events(self, event):
+        
+        quitting = False
+        if event.type == pg.QUIT:
+            quitting = True
+        elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+            quitting = True
+        if quitting:
+            self.controller.inqueue.put(None)
+            self.controller.join()
+        
+        # Is this clugey? Making sure the AI player moves with input too 
+        super().events(event)
+ 
+        if event.type == pg.USEREVENT+1:
+            print("Adding to queue")
+            self.controller.inqueue.put(self.observe())
+        
+
+
+    def observe(self):
+        return (self.rect.x, self.rect.y)
+
+
+    def queued_events(self):
+        while not self.controller.outqueue.empty():
+            event = self.controller.outqueue.get()
+
+            pg.event.post(pg.event.Event(event[0], key=event[1]))
+
 
 class Item(pg.sprite.Sprite):
     def __init__(self, game, x, y, img_name=None):
@@ -103,10 +161,10 @@ class Item(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.x = int(x/TILESIZE)
         self.y = int(y/TILESIZE)
-        self.rect.x = x 
+        self.rect.x = x
         self.rect.y = y
         self.active = True
-    
+
     def collide(self, sprite):
         pass
 
@@ -115,16 +173,17 @@ class Item(pg.sprite.Sprite):
             return pg.image.load(os.path.join(IMAGE_FOLDER, img_name))
         return pg.Surface((TILESIZE, TILESIZE), pg.SRCALPHA)
 
+
 class Carrot(Item):
     def __init__(self, game, x, y):
         super().__init__(game, x, y, "carrot.png")
         self.groups = game.all_sprites, game.carrots, game.items
         self._layer = 1
-    
+
     def collide(self, sprite):
         sprite.carrot_count += 1
         self.kill()
-               
+
 
 class Chest(Item):
     def __init__(self, game, x, y):
@@ -137,8 +196,7 @@ class Chest(Item):
         sprite.carrot_count = 0
         if self.carrot_count == sprite.game.total_carrots:
             sprite.game.playing = False
-        
-        
+
 
 class Wall(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -153,6 +211,7 @@ class Wall(pg.sprite.Sprite):
         self.rect.x = x * TILESIZE
         self.rect.y = y * TILESIZE
 
+
 class Obstacle(pg.sprite.Sprite):
     def __init__(self, game, x, y, w, h):
         self.groups = game.walls,
@@ -160,7 +219,7 @@ class Obstacle(pg.sprite.Sprite):
         self.game = game
         self.image = pg.Surface((TILESIZE, TILESIZE))
         self.image.fill(GREEN)
-        self.rect = pg.Rect(x, y, w, h) 
+        self.rect = pg.Rect(x, y, w, h)
         self.x = int(x/TILESIZE)
         self.y = int(y/TILESIZE)
         self.rect.x = x
