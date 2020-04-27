@@ -1,6 +1,7 @@
 import pygame as pg
 from settings import *
 from controller import AIController
+import pytweening as tween
 import os
 
 
@@ -157,8 +158,8 @@ class Item(pg.sprite.Sprite):
         self.game = game
         self.image = self.load_image(img_name)
         self.rect = self.image.get_rect()
-        self.x = int(x/TILESIZE)
-        self.y = int(y/TILESIZE)
+        self.x = x
+        self.y = y
         self.rect.x = x
         self.rect.y = y
         self.active = True
@@ -177,10 +178,23 @@ class Carrot(Item):
         super().__init__(game, x, y, "carrot.png")
         self.groups = game.all_sprites, game.carrots, game.items
         self._layer = 1
+        self.tween = tween.easeInOutSine
+        self.tween_step = 0
+        self.tween_direction = 1
 
     def collide(self, sprite):
         sprite.carrot_count += 1
         self.kill()
+
+    def update(self):
+        offset = BOB_RANGE * (self.tween(self.tween_step/BOB_RANGE) - 0.5)
+        self.rect.y = (self.y-(self.rect.height/8)) + offset * self.tween_direction
+        self.tween_step += BOB_SPEED
+        if self.tween_step > BOB_RANGE:
+            self.tween_step = 0
+            self.tween_direction *= -1
+
+
 
 
 class Chest(Item):

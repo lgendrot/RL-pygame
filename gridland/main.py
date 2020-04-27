@@ -43,7 +43,8 @@ class Game:
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 print("player location: ", tile_object.x, tile_object.y)
-                self.player = AIPlayer(self, tile_object.x, tile_object.y)
+                #self.player = AIPlayer(self, tile_object.x, tile_object.y)
+                self.player = Player(self, tile_object.x, tile_object.y)
             if tile_object.name == "wall":
                 Obstacle(self, tile_object.x, tile_object.y,
                          tile_object.width, tile_object.height)

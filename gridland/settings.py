@@ -14,6 +14,10 @@ FPS = 60
 TITLE = "Tilemap Demo"
 BGCOLOR = DARKGREY
 
+# tweening
+BOB_RANGE = 5 
+BOB_SPEED = 0.2
+
 
 # score settings
 MOVEMENT_COST = 1
