@@ -13,7 +13,8 @@ class AnimationImages:
 
     def load_images(self):
         """Rather convoluted method to build a dictionary of animation images,
-        expects the structure of the base directory to be action/action_direction_index.png
+            expects the structure of the base directory to be 
+            action/action_direction_index.png
 
         output: self.images[action][direction] = [file1, file2, file3]
         """
@@ -30,8 +31,11 @@ class AnimationImages:
                                 image_dict[entry.name][direction] = []
                             image = pg.image.load(file.path).convert()
                             height, width = image.get_size()
-                            image = pg.transform.scale(image, (height*self.scale_factor,
-                                                               width*self.scale_factor))
+                            
+                            dims = (height*self.scale_factor, 
+                                    width*self.scale_factor)
+
+                            image = pg.transform.scale(image, dims) 
                             image_dict[entry.name][direction].append(image)
         return image_dict
 
@@ -96,7 +100,7 @@ class Player(pg.sprite.Sprite):
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_ESCAPE:
                 self.game.quit()
-            
+
             if event.key == pg.K_LEFT:
                 self.move(dx=-1)
             if event.key == pg.K_RIGHT:
@@ -112,7 +116,7 @@ class AIPlayer(Player):
         super().__init__(game, x, y)
         eventid = pg.USEREVENT+1
         pg.time.set_timer(eventid, 200)
-        
+
         self.controller = AIController()
         self.controller.start()
 
@@ -120,10 +124,8 @@ class AIPlayer(Player):
         self.queued_events()
         super().update()
 
-
-
     def events(self, event):
-        
+
         quitting = False
         if event.type == pg.QUIT:
             quitting = True
@@ -131,18 +133,15 @@ class AIPlayer(Player):
             quitting = True
         if quitting:
             self.controller.quit()
-        
-        # Is using super() clugey? 
+
+        # Is using super() clugey?
         super().events(event)
- 
+
         if event.type == pg.USEREVENT+1:
             self.controller.inqueue.put(self.observe())
-        
-
 
     def observe(self):
         return (self.rect.x, self.rect.y)
-
 
     def queued_events(self):
         while not self.controller.outqueue.empty():
@@ -188,13 +187,15 @@ class Carrot(Item):
 
     def update(self):
         offset = BOB_RANGE * (self.tween(self.tween_step/BOB_RANGE) - 0.5)
-        self.rect.y = (self.y-(self.rect.height/8)) + offset * self.tween_direction
+        
+        self.rect.y = (self.y-(self.rect.height/8)) + \
+            offset * self.tween_direction
+
         self.tween_step += BOB_SPEED
+       
         if self.tween_step > BOB_RANGE:
             self.tween_step = 0
             self.tween_direction *= -1
-
-
 
 
 class Chest(Item):
