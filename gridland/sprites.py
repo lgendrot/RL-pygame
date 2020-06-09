@@ -1,6 +1,6 @@
 import pygame as pg
 from settings import *
-from controller import AIController
+from controller import MonteCarloAgent
 import pytweening as tween
 import os
 
@@ -55,6 +55,14 @@ class Player(pg.sprite.Sprite):
         self.carrot_count = 0
         self.score = 0
         self.total_actions = 0
+
+    def reset(self, x, y):
+        self.x = x
+        self.y = y
+        self.carrot_count = 0
+        self.score = 0
+        self.total_actions = 0
+        self.direction = "forward"
 
     def move(self, dx=0, dy=0):
         dx *= TILESIZE
@@ -115,10 +123,11 @@ class AIPlayer(Player):
     def __init__(self, game, x, y):
         super().__init__(game, x, y)
         eventid = pg.USEREVENT+1
-        pg.time.set_timer(eventid, 200)
+        pg.time.set_timer(eventid, AGENT_DELAY)
 
-        self.controller = AIController()
+        self.controller = MonteCarloAgent()
         self.controller.start()
+        self.game.state_values = dict()
 
     def update(self):
         self.queued_events()
@@ -137,8 +146,17 @@ class AIPlayer(Player):
         # Is using super() clugey?
         super().events(event)
 
+
+
+
+        # periodically a USEREVENT+1 is sent to the event queue
+        # That triggers the player's observe 
         if event.type == pg.USEREVENT+1:
-            self.controller.inqueue.put(self.observe())
+            if self.game.go_screen:
+                print("NEW GAME!")
+                self.controller.inqueue.put(("NEW_GAME", self.score))
+            else:
+                self.controller.inqueue.put(self.observe())
 
     def observe(self):
         return (self.rect.x, self.rect.y)
@@ -146,13 +164,14 @@ class AIPlayer(Player):
     def queued_events(self):
         while not self.controller.outqueue.empty():
             event = self.controller.outqueue.get()
-
             pg.event.post(pg.event.Event(event[0], key=event[1]))
+            while not self.controller.debug_queue.empty():
+                self.game.state_values = self.controller.debug_queue.get()
 
 
 class Item(pg.sprite.Sprite):
-    def __init__(self, game, x, y, img_name=None):
-        self.groups = game.all_sprites, game.items
+    def __init__(self, game, x, y, img_name=None, groups=[]):
+        self.groups = groups 
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
         self.image = self.load_image(img_name)
@@ -173,9 +192,8 @@ class Item(pg.sprite.Sprite):
 
 
 class Carrot(Item):
-    def __init__(self, game, x, y):
-        super().__init__(game, x, y, "carrot.png")
-        self.groups = game.all_sprites, game.carrots, game.items
+    def __init__(self, game, x, y, groups):
+        super().__init__(game, x, y, "carrot.png", groups) 
         self._layer = 1
         self.tween = tween.easeInOutSine
         self.tween_step = 0
@@ -183,6 +201,7 @@ class Carrot(Item):
 
     def collide(self, sprite):
         sprite.carrot_count += 1
+        sprite.score += PICKUP_REWARD
         self.kill()
 
     def update(self):
@@ -199,9 +218,13 @@ class Carrot(Item):
 
 
 class Chest(Item):
-    def __init__(self, game, x, y):
-        super().__init__(game, x, y)
+    def __init__(self, game, x, y, groups):
+        super().__init__(game, x, y, groups=groups)
         self.carrot_count = 0
+
+    def reset(self):
+        self.carrot_count = 0
+
 
     def collide(self, sprite):
         self.carrot_count += sprite.carrot_count

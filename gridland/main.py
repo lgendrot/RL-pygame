@@ -25,6 +25,7 @@ class Game:
         pg.key.set_repeat(250, 50)  # Allows us to hold dowW keys to move, etc.
         self.load_data()
         self.total_carrots = 0
+        self.go_screen = False
 
     def load_data(self):
         game_folder = path.dirname(__file__)
@@ -38,23 +39,57 @@ class Game:
         # initialize all variables and do all the setup for a new game
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
+        self.chest = pg.sprite.Group()
         self.items = pg.sprite.Group()
         self.carrots = pg.sprite.Group()
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 print("player location: ", tile_object.x, tile_object.y)
-                #self.player = AIPlayer(self, tile_object.x, tile_object.y)
-                self.player = Player(self, tile_object.x, tile_object.y)
+                self.player = AIPlayer(self, tile_object.x, tile_object.y)             
+                #self.player = Player(self, tile_object.x, tile_object.y)
+
             if tile_object.name == "wall":
                 Obstacle(self, tile_object.x, tile_object.y,
                          tile_object.width, tile_object.height)
             if tile_object.name == "carrot":
-                Carrot(self, tile_object.x, tile_object.y)
+                Carrot(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.carrots])
                 self.total_carrots += 1
             if tile_object.name == "chest":
-                Chest(self, tile_object.x, tile_object.y)
+                Chest(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.chest])
 
         self.camera = Camera(self.map.width, self.map.height)
+
+    def reset(self):
+        # initialize all variables anddo all the setup for a new game
+        
+        self.chest = pg.sprite.Group()
+        for chest in self.chest:
+            self.all_sprites.remove(chest)
+            chest.kill()
+        
+        for carrot in self.carrots:
+            self.all_sprites.remove(carrot)
+            carrot.kill()
+        self.carrots.empty()
+        self.carrots = pg.sprite.Group()
+
+        for item in self.items:
+            self.all_sprites.remove(item)
+            item.kill()
+        self.items = pg.sprite.Group()
+        self.total_carrots = 0
+        
+        for tile_object in self.map.tmxdata.objects:
+            if tile_object.name == "player":
+                print("player location: ", tile_object.x, tile_object.y)
+                #self.player = AIPlayer(self, tile_object.x, tile_object.y)
+                self.player.reset(tile_object.x, tile_object.y)
+            if tile_object.name == "carrot":
+                Carrot(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.carrots, self.items])
+                self.total_carrots += 1
+            if tile_object.name == "chest":
+                Chest(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.chest, self.items])
+
 
     def run(self):
         # game loop - set self.playing = False to end the game
@@ -65,8 +100,6 @@ class Game:
             self.events()
             self.update()
             self.draw()
-        if isinstance(self.player, AIPlayer):
-            self.player.controller.quit()
 
     def quit(self):
         self.playing = False
@@ -93,6 +126,11 @@ class Game:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
         self.screen.blit(self.score_surface(self.player), (0, 0))
+        
+        for state in self.state_values:
+            val = self.state_values.get(state, 0)
+            val = round(val, 1)
+            self.screen.blit(self.state_value_surface(str(val)), state)
 
         pg.display.flip()
 
@@ -100,43 +138,52 @@ class Game:
         # catch all events here
         for event in pg.event.get():
             if event.type == pg.QUIT:
+                if isinstance(self.player, AIController):
+                    self.player.controller.quit()
                 self.quit()
             self.player.events(event)
-
-
 
     def score_surface(self, player):
         template = "Score: {}, Remaining Moves: {}"
         template = template.format(
             player.score, MAX_ACTIONS-player.total_actions)
-        return pg.font.Font(pg.font.get_default_font(), 18).render(template, True, (0, 0, 255))
+       
+        default_font = pg.font.get_default_font()
+        return pg.font.Font(default_font, 18).render(template, True, (0,0,255))
 
     def show_start_screen(self):
         pass
 
-
     def game_over_surface(self):
         text = "Game Over! Press Any Key To Play Again"
-        return pg.font.Font(pg.font.get_default_font(), 24).render(text, True, (0, 0, 255))
+        default_font = pg.font.get_default_font()
+        return pg.font.Font(default_font, 24).render(text, True, (0, 0, 255))
 
-
+    def state_value_surface(self, V):
+        default_font = pg.font.get_default_font()
+        return pg.font.Font(default_font, 8).render(V, True, (0,0,240))
 
     def show_go_screen(self):
         self.go_screen = True
-
         while self.go_screen:
             go_surf = self.game_over_surface()
-            self.screen.blit(go_surf, (WIDTH/2-(go_surf.get_width()/2),HEIGHT/2))
+            self.screen.blit(
+                go_surf, (WIDTH/2-(go_surf.get_width()/2), HEIGHT/2))
+
             pg.display.flip()
+            
+            self.events()
+            self.update()
+            
             for event in pg.event.get():
                 if event.type == pg.KEYDOWN:
                     self.go_screen = False
 
-
 # create the game object
 g = Game()
 g.show_start_screen()
+g.new()
 while True:
-    g.new()
     g.run()
     g.show_go_screen()
+    g.reset()
