@@ -3,7 +3,7 @@ import queue
 import time
 import pygame as pg
 import numpy as np
-from settings import TILESIZE, EXPLORATION_RATE, EPSILON_UPDATE_RATE
+from settings import TILESIZE, EXPLORATION_RATE, EPSILON_UPDATE_RATE, REWARD_DISCOUNT
 
 class AIController(multiprocessing.Process):
     def __init__(self):
@@ -51,8 +51,8 @@ class MonteCarloAgent(AIController):
                     reward = observation['reward']
 
                     G = 0
-                    for step in episode_list[idx:]:
-                        G += step['reward']
+                    for idx, step in enumerate(episode_list[idx:]):
+                        G += (REWARD_DISCOUNT**(idx+1))*step['reward']
 
                     
                     
