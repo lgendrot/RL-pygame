@@ -128,6 +128,7 @@ class AIPlayer(Player):
         self.controller = MonteCarloAgent()
         self.controller.start()
         self.game.state_values = dict()
+        self.immediate_reward = 0
 
     def update(self):
         self.queued_events()
@@ -159,7 +160,11 @@ class AIPlayer(Player):
                 self.controller.inqueue.put(self.observe())
 
     def observe(self):
-        return (self.rect.x, self.rect.y)
+        obs = {}
+        obs['state'] = (self.rect.x, self.rect.y)
+        obs['reward'] = self.immediate_reward
+        self.immediate_reward = 0
+        return obs
 
     def queued_events(self):
         while not self.controller.outqueue.empty():
@@ -202,6 +207,7 @@ class Carrot(Item):
     def collide(self, sprite):
         sprite.carrot_count += 1
         sprite.score += PICKUP_REWARD
+        sprite.immediate_reward = PICKUP_REWARD
         self.kill()
 
     def update(self):
@@ -229,6 +235,7 @@ class Chest(Item):
     def collide(self, sprite):
         self.carrot_count += sprite.carrot_count
         sprite.score += (CARROT_REWARD * sprite.carrot_count)
+        sprite.immediate_reward = (CARROT_REWARD * sprite.carrot_count)
         sprite.carrot_count = 0
         if self.carrot_count == sprite.game.total_carrots:
             sprite.game.playing = False

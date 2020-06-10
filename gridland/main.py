@@ -129,8 +129,8 @@ class Game:
         
         for state in self.state_values:
             val = self.state_values.get(state, 0)
-            val = round(val, 1)
-            self.screen.blit(self.state_value_surface(str(val)), state)
+            val = round(val, 2)
+            self.screen.blit(self.state_value_surface(str(val)), (state[0]+TILESIZE/2, state[1]+TILESIZE/2))
 
         pg.display.flip()
 
