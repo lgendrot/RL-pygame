@@ -97,8 +97,8 @@ class Game:
         self.playing = True
         while self.playing:
             self.dt = self.clock.tick(FPS) / 1000
-            self.events()
             self.update()
+            self.events()
             self.draw()
 
     def quit(self):
@@ -126,11 +126,18 @@ class Game:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
         self.screen.blit(self.score_surface(self.player), (0, 0))
-        
-        for state in self.state_values:
-            val = self.state_values.get(state, 0)
-            val = round(val, 2)
-            self.screen.blit(self.state_value_surface(str(val)), (state[0]+TILESIZE/2, state[1]+TILESIZE/2))
+       
+        # Yuck 
+        try:
+            for state in self.state_values:
+                val = self.state_values.get(state, 0)
+                val = round(val, 2)
+                x, y = (state[0]+TILESIZE/2, state[1]+TILESIZE/2)
+                if len(state) == 3 and state[2] == True:
+                    y = state[1] + TILESIZE/4
+                self.screen.blit(self.state_value_surface(str(val)), (x,y))
+        except NameError:
+            print("Oops, no state values to blit")
 
         pg.display.flip()
 

@@ -79,7 +79,8 @@ class Player(pg.sprite.Sprite):
 
             self.x += dx
             self.y += dy
-        self.score -= MOVEMENT_COST
+        self.score += MOVEMENT_COST
+        self.immediate_reward += MOVEMENT_COST
         self.total_actions += 1
 
     def collide_with_walls(self, dx, dy):
@@ -101,7 +102,8 @@ class Player(pg.sprite.Sprite):
         self.rect.y = self.y
         self.collide_with_items()
         if self.total_actions >= MAX_ACTIONS:
-            self.score -= UNFINISHED_COST
+            self.score += UNFINISHED_COST
+            self.immediate_reward += UNFINISHED_COST
             self.game.playing = False
 
     def events(self, event):
@@ -127,12 +129,19 @@ class AIPlayer(Player):
 
         self.controller = MonteCarloAgent()
         self.controller.start()
+
+        # This is really bad, one class shouldn't change anothers' variables without it being explicit
         self.game.state_values = dict()
         self.immediate_reward = 0
+        self.recent_carrot = False
 
     def update(self):
         self.queued_events()
         super().update()
+
+    def move(self, dx=0, dy=0):
+        self.recent_carrot = False
+        super().move(dx, dy)
 
     def events(self, event):
 
@@ -161,7 +170,7 @@ class AIPlayer(Player):
 
     def observe(self):
         obs = {}
-        obs['state'] = (self.rect.x, self.rect.y)
+        obs['state'] = (self.rect.x, self.rect.y, self.recent_carrot)
         obs['reward'] = self.immediate_reward
         self.immediate_reward = 0
         return obs
@@ -208,6 +217,7 @@ class Carrot(Item):
         sprite.carrot_count += 1
         sprite.score += PICKUP_REWARD
         sprite.immediate_reward = PICKUP_REWARD
+        sprite.recent_carrot = True
         self.kill()
 
     def update(self):

@@ -35,13 +35,18 @@ class MonteCarloAgent(AIController):
         episode_list = []
         episode_number = 1
         epsilon = EXPLORATION_RATE
+        carrot_states_seen = []
         while True:
             observation = self.inqueue.get()
+
+          
+
             if observation is None:
                 print("Quitting...")
                 break
             elif isinstance(observation, tuple) and observation[0] == "NEW_GAME":
                 episode_number += 1
+                carrot_states_seen = []
                 #print(self.N_s)
                 G = 0
                 state_rewards = {}
@@ -49,6 +54,7 @@ class MonteCarloAgent(AIController):
                     
                     state = observation['state']
                     reward = observation['reward']
+
 
                     G = 0
                     for idx, step in enumerate(episode_list[idx:]):
@@ -84,15 +90,18 @@ class MonteCarloAgent(AIController):
                 best_action = None
                 best_v = -1000000
                 for action in actions:
-                    next_state = np.array(observation['state']) + np.array(action)
+                    next_state = np.array(observation['state'][0:2]) + np.array(action)
                     next_state = tuple(next_state)
+
+                    if next_state + (True,) in carrot_states_seen:
+                        next_state = next_state + (False,)
+                        
                     action_value = self.V_s.get(next_state, 0)
-                    if action_value > best_v:
+                    if action_value >= best_v:
                         best_v = action_value
                         best_action = action
 
                 print("Best action: ", best_action)
-
 
 
                 if np.random.uniform() > 1-epsilon:
@@ -109,6 +118,9 @@ class MonteCarloAgent(AIController):
                 elif best_action == right:
                     self.outqueue.put((pg.KEYDOWN, pg.K_RIGHT))
 
+                if observation['state'][2] == True:
+                    carrot_states_seen.append(observation['state'])
+ 
 
             # For deep learning: Load up the model in __init__ and call it here
             # For table-based Q-learning:
