@@ -80,7 +80,6 @@ class Player(pg.sprite.Sprite):
             self.x += dx
             self.y += dy
         self.score += MOVEMENT_COST
-        self.immediate_reward += MOVEMENT_COST
         self.total_actions += 1
 
     def collide_with_walls(self, dx, dy):
@@ -103,7 +102,6 @@ class Player(pg.sprite.Sprite):
         self.collide_with_items()
         if self.total_actions >= MAX_ACTIONS:
             self.score += UNFINISHED_COST
-            self.immediate_reward += UNFINISHED_COST
             self.game.playing = False
 
     def events(self, event):
@@ -130,17 +128,18 @@ class AIPlayer(Player):
         self.controller = MonteCarloAgent()
         self.controller.start()
 
-        # This is really bad, one class shouldn't change anothers' variables without it being explicit
-        self.game.state_values = dict()
         self.immediate_reward = 0
         self.recent_carrot = False
 
     def update(self):
         self.queued_events()
         super().update()
+        if self.total_actions >= MAX_ACTIONS:
+            self.immediate_reward += UNFINISHED_COST
 
     def move(self, dx=0, dy=0):
         self.recent_carrot = False
+        self.immediate_reward += MOVEMENT_COST
         super().move(dx, dy)
 
     def events(self, event):
@@ -154,23 +153,33 @@ class AIPlayer(Player):
             self.controller.quit()
 
         # Is using super() clugey?
-        super().events(event)
-
-
-
 
         # periodically a USEREVENT+1 is sent to the event queue
         # That triggers the player's observe 
         if event.type == pg.USEREVENT+1:
             if self.game.go_screen:
-                print("NEW GAME!")
                 self.controller.inqueue.put(("NEW_GAME", self.score))
             else:
                 self.controller.inqueue.put(self.observe())
+        super().events(event)
 
     def observe(self):
         obs = {}
-        obs['state'] = (self.rect.x, self.rect.y, self.recent_carrot)
+        carrot_pos = [False, False, False, False]
+        
+        # is carrot in up, down, left, right
+        # player can see 1 tile around itself
+        for carrot in self.game.carrots:
+            if carrot.rect.collidepoint(self.rect.x, self.rect.y-TILESIZE):
+                carrot_pos[0] = True
+            elif carrot.rect.collidepoint(self.rect.x, self.rect.y+TILESIZE):
+                carrot_pos[1] = True
+            elif carrot.rect.collidepoint(self.rect.x-TILESIZE, self.rect.y):
+                carrot_pos[2] = True
+            elif carrot.rect.collidepoint(self.rect.x+TILESIZE, self.rect.y):
+                carrot_pos[3] = True
+        carrot_pos = tuple(carrot_pos)
+        obs['state'] = (self.rect.x, self.rect.y, carrot_pos)
         obs['reward'] = self.immediate_reward
         self.immediate_reward = 0
         return obs
@@ -179,8 +188,6 @@ class AIPlayer(Player):
         while not self.controller.outqueue.empty():
             event = self.controller.outqueue.get()
             pg.event.post(pg.event.Event(event[0], key=event[1]))
-            while not self.controller.debug_queue.empty():
-                self.game.state_values = self.controller.debug_queue.get()
 
 
 class Item(pg.sprite.Sprite):
@@ -216,8 +223,9 @@ class Carrot(Item):
     def collide(self, sprite):
         sprite.carrot_count += 1
         sprite.score += PICKUP_REWARD
-        sprite.immediate_reward = PICKUP_REWARD
-        sprite.recent_carrot = True
+        if isinstance(sprite, AIPlayer):
+            sprite.immediate_reward = PICKUP_REWARD
+            sprite.recent_carrot = True
         self.kill()
 
     def update(self):
@@ -245,7 +253,8 @@ class Chest(Item):
     def collide(self, sprite):
         self.carrot_count += sprite.carrot_count
         sprite.score += (CARROT_REWARD * sprite.carrot_count)
-        sprite.immediate_reward = (CARROT_REWARD * sprite.carrot_count)
+        if isinstance(sprite, AIPlayer):
+            sprite.immediate_reward = (CARROT_REWARD * sprite.carrot_count)
         sprite.carrot_count = 0
         if self.carrot_count == sprite.game.total_carrots:
             sprite.game.playing = False

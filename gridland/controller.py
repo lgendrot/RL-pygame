@@ -28,6 +28,7 @@ class MonteCarloAgent(AIController):
     def __init__(self):
         super().__init__()
         self.V_s = dict()
+        self.Q_s = dict()
         self.N_s = dict()
 
 
@@ -35,7 +36,8 @@ class MonteCarloAgent(AIController):
         episode_list = []
         episode_number = 1
         epsilon = EXPLORATION_RATE
-        carrot_states_seen = []
+        actions = {"up": (0, -TILESIZE), "down": (0, TILESIZE), "left": (-TILESIZE, 0), "right": (TILESIZE, 0)}
+
         while True:
             observation = self.inqueue.get()
 
@@ -46,13 +48,13 @@ class MonteCarloAgent(AIController):
                 break
             elif isinstance(observation, tuple) and observation[0] == "NEW_GAME":
                 episode_number += 1
-                carrot_states_seen = []
                 #print(self.N_s)
                 G = 0
                 state_rewards = {}
                 for idx, observation in enumerate(episode_list):
                     
                     state = observation['state']
+                    action = observation['action']
                     reward = observation['reward']
 
 
@@ -61,44 +63,27 @@ class MonteCarloAgent(AIController):
                         G += (REWARD_DISCOUNT**(idx+1))*step['reward']
 
                     
-                    
-                    self.V_s[state] += ((1/self.N_s[state])*(G - self.V_s[state]))
+                    state_action = (state, action) 
+                    self.Q_s[state_action] += ((1/self.N_s[state_action])*(G - self.Q_s[state_action]))
                 
-                self.outqueue.put((pg.KEYDOWN, pg.K_DOWN))
-                self.debug_queue.put(self.V_s)
                 episode_list = []
 
                 if episode_number % EPSILON_UPDATE_RATE == 0:
                     epsilon *= epsilon
+
+                self.outqueue.put((pg.KEYDOWN, pg.K_SPACE))
+                self.debug_queue.put((episode_number, self.Q_s))
             else:
-                episode_list.append(observation)
-                if self.N_s.get(observation['state'], None):
-                    self.N_s[observation['state']] += 1
-                else:
-                    self.N_s[observation['state']] = 1
-                    self.V_s[observation['state']] = 0
-
-
+                   
             # Get surrounding squares:
 
-                up = list(np.array((0, -1))*TILESIZE)
-                down = list(np.array((0, 1))*TILESIZE)
-                left = list(np.array((-1, 0))*TILESIZE)
-                right = list(np.array((1, 0))*TILESIZE)
-
-                actions = [right, up, down, left]
                 best_action = None
                 best_v = -1000000
                 for action in actions:
-                    next_state = np.array(observation['state'][0:2]) + np.array(action)
-                    next_state = tuple(next_state)
-
-                    if next_state + (True,) in carrot_states_seen:
-                        next_state = next_state + (False,)
-                        
-                    action_value = self.V_s.get(next_state, 0)
-                    if action_value >= best_v:
-                        best_v = action_value
+                    s_a = (observation['state'], action) 
+                    state_action_value = self.Q_s.get(s_a, 0)
+                    if state_action_value >= best_v:
+                        best_v = state_action_value
                         best_action = action
 
                 print("Best action: ", best_action)
@@ -108,19 +93,34 @@ class MonteCarloAgent(AIController):
                     print("Random Action!")
                     print("EPSILON: ", epsilon)
                     print("EPISODE: ", episode_number)
-                    self.outqueue.put((pg.KEYDOWN, [pg.K_UP, pg.K_DOWN, pg.K_LEFT, pg.K_RIGHT][np.random.randint(0, 4)]))
-                elif best_action == up:
+                    random_idx = np.random.randint(0, 4)
+                    keys = [pg.K_UP, pg.K_DOWN, pg.K_LEFT, pg.K_RIGHT]
+                    self.outqueue.put((pg.KEYDOWN, keys[random_idx]))
+                    observation['action'] = ["up", "down", "left", "right"][random_idx]
+                elif best_action == 'up':
                     self.outqueue.put((pg.KEYDOWN, pg.K_UP))
-                elif best_action == down:
+                    observation['action'] = best_action
+                elif best_action == 'down':
                     self.outqueue.put((pg.KEYDOWN, pg.K_DOWN))
-                elif best_action == left:
+                    observation['action'] = best_action
+                elif best_action == 'left':
                     self.outqueue.put((pg.KEYDOWN, pg.K_LEFT))
-                elif best_action == right:
+                    observation['action'] = best_action
+                elif best_action == 'right':
                     self.outqueue.put((pg.KEYDOWN, pg.K_RIGHT))
+                    observation['action'] = best_action
 
-                if observation['state'][2] == True:
-                    carrot_states_seen.append(observation['state'])
- 
+
+                state_action = (observation['state'], observation['action'])
+                if self.N_s.get(state_action, 0): 
+                    self.N_s[state_action] += 1  
+                else:
+                    self.N_s[state_action] = 1
+
+
+                if not self.Q_s.get(state_action, False):
+                    self.Q_s[state_action] = 0
+                episode_list.append(observation) 
 
             # For deep learning: Load up the model in __init__ and call it here
             # For table-based Q-learning:

@@ -45,17 +45,17 @@ class Game:
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 print("player location: ", tile_object.x, tile_object.y)
-                self.player = AIPlayer(self, tile_object.x, tile_object.y)             
-                #self.player = Player(self, tile_object.x, tile_object.y)
+                self.player = AIPlayer(self, tile_object.x, tile_object.y)         
+               # self.player = Player(self, tile_object.x, tile_object.y)
 
             if tile_object.name == "wall":
                 Obstacle(self, tile_object.x, tile_object.y,
                          tile_object.width, tile_object.height)
             if tile_object.name == "carrot":
-                Carrot(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.carrots])
+                Carrot(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.carrots, self.items])
                 self.total_carrots += 1
             if tile_object.name == "chest":
-                Chest(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.chest])
+                Chest(self, tile_object.x, tile_object.y, groups=[self.all_sprites, self.chest, self.items])
 
         self.camera = Camera(self.map.width, self.map.height)
 
@@ -97,8 +97,8 @@ class Game:
         self.playing = True
         while self.playing:
             self.dt = self.clock.tick(FPS) / 1000
-            self.update()
             self.events()
+            self.update()
             self.draw()
 
     def quit(self):
@@ -129,16 +129,19 @@ class Game:
        
         # Yuck 
         try:
-            for state in self.state_values:
-                val = self.state_values.get(state, 0)
-                val = round(val, 2)
-                x, y = (state[0]+TILESIZE/2, state[1]+TILESIZE/2)
-                if len(state) == 3 and state[2] == True:
-                    y = state[1] + TILESIZE/4
-                self.screen.blit(self.state_value_surface(str(val)), (x,y))
-        except NameError:
-            print("Oops, no state values to blit")
-
+            if isinstance(self.player, AIPlayer):
+                if not self.player.controller.debug_queue.empty():
+                    (self.episode, self.state_values) = self.player.controller.debug_queue.get()
+                if self.episode % DEBUG_BLIT_RATE == 0:
+                    for state in self.state_values:
+                        val = self.state_values.get(state, 0)
+                        val = round(val, 2)
+                        x, y = (state[0][0]+TILESIZE/2, state[0][1]+TILESIZE/2)
+                        if len(state) == 3 and state[2] == True:
+                            y = state[0][1] + TILESIZE/4
+                        self.screen.blit(self.state_value_surface(str(val)), (x,y))
+        except (NameError, AttributeError) as e:
+            pass
         pg.display.flip()
 
     def events(self):
@@ -148,12 +151,18 @@ class Game:
                 if isinstance(self.player, AIController):
                     self.player.controller.quit()
                 self.quit()
+            
             self.player.events(event)
+            
+            if self.go_screen == True and event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                self.go_screen = False
+
+
 
     def score_surface(self, player):
-        template = "Score: {}, Remaining Moves: {}"
+        template = "Score: {}, Remaining Moves: {}, Pos: ({}, {})"
         template = template.format(
-            player.score, MAX_ACTIONS-player.total_actions)
+            player.score, MAX_ACTIONS-player.total_actions, player.rect.x, player.rect.y)
        
         default_font = pg.font.get_default_font()
         return pg.font.Font(default_font, 18).render(template, True, (0,0,255))
@@ -162,7 +171,7 @@ class Game:
         pass
 
     def game_over_surface(self):
-        text = "Game Over! Press Any Key To Play Again"
+        text = "Game Over! Press Space To Play Again"
         default_font = pg.font.get_default_font()
         return pg.font.Font(default_font, 24).render(text, True, (0, 0, 255))
 
@@ -182,10 +191,7 @@ class Game:
             self.events()
             self.update()
             
-            for event in pg.event.get():
-                if event.type == pg.KEYDOWN:
-                    self.go_screen = False
-
+            
 # create the game object
 g = Game()
 g.show_start_screen()
