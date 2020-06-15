@@ -3,7 +3,9 @@ import queue
 import time
 import pygame as pg
 import numpy as np
-from settings import TILESIZE, EXPLORATION_RATE, EPSILON_UPDATE_RATE, REWARD_DISCOUNT
+from settings import *
+
+# TODO: Make equal-value state_action choices a random choice
 
 class AIController(multiprocessing.Process):
     def __init__(self):
@@ -69,10 +71,12 @@ class MonteCarloAgent(AIController):
                 episode_list = []
 
                 if episode_number % EPSILON_UPDATE_RATE == 0:
-                    epsilon *= epsilon
+                    epsilon *= EPSILON_DECAY
 
                 self.outqueue.put((pg.KEYDOWN, pg.K_SPACE))
                 self.debug_queue.put((episode_number, self.Q_s))
+                
+                print("Episode: {} Epsilon: {}".format(episode_number, epsilon))
             else:
                    
             # Get surrounding squares:
@@ -86,13 +90,9 @@ class MonteCarloAgent(AIController):
                         best_v = state_action_value
                         best_action = action
 
-                print("Best action: ", best_action)
 
 
                 if np.random.uniform() > 1-epsilon:
-                    print("Random Action!")
-                    print("EPSILON: ", epsilon)
-                    print("EPISODE: ", episode_number)
                     random_idx = np.random.randint(0, 4)
                     keys = [pg.K_UP, pg.K_DOWN, pg.K_LEFT, pg.K_RIGHT]
                     self.outqueue.put((pg.KEYDOWN, keys[random_idx]))

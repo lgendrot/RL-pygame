@@ -13,7 +13,6 @@ from tilemap import TiledMap, Camera
 
 # TODO: Make WIDTH and HEIGHT automatic by loading map data first
 
-
 class Game:
     def __init__(self):
         # pg.init()
@@ -129,7 +128,7 @@ class Game:
        
         # Yuck 
         try:
-            if isinstance(self.player, AIPlayer):
+            if isinstance(self.player, AIPlayer) and DEBUG == True:
                 if not self.player.controller.debug_queue.empty():
                     (self.episode, self.state_values) = self.player.controller.debug_queue.get()
                 if self.episode % DEBUG_BLIT_RATE == 0:
@@ -148,7 +147,7 @@ class Game:
         # catch all events here
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if isinstance(self.player, AIController):
+                if isinstance(self.player, AIPlayer):
                     self.player.controller.quit()
                 self.quit()
             

@@ -179,7 +179,7 @@ class AIPlayer(Player):
             elif carrot.rect.collidepoint(self.rect.x+TILESIZE, self.rect.y):
                 carrot_pos[3] = True
         carrot_pos = tuple(carrot_pos)
-        obs['state'] = (self.rect.x, self.rect.y, carrot_pos)
+        obs['state'] = (self.rect.x, self.rect.y, carrot_pos, self.carrot_count)
         obs['reward'] = self.immediate_reward
         self.immediate_reward = 0
         return obs
