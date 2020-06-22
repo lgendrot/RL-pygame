@@ -1,6 +1,6 @@
 import pygame as pg
 from settings import *
-from controller import MonteCarloAgent
+from controller import MonteCarloAgent, SARSA
 import pytweening as tween
 import os
 
@@ -125,7 +125,8 @@ class AIPlayer(Player):
         eventid = pg.USEREVENT+1
         pg.time.set_timer(eventid, AGENT_DELAY)
 
-        self.controller = MonteCarloAgent()
+        #self.controller = MonteCarloAgent()
+        self.controller = SARSA()
         self.controller.start()
 
         self.immediate_reward = 0
@@ -187,7 +188,11 @@ class AIPlayer(Player):
     def queued_events(self):
         while not self.controller.outqueue.empty():
             event = self.controller.outqueue.get()
-            pg.event.post(pg.event.Event(event[0], key=event[1]))
+            try:
+                pg.event.post(pg.event.Event(event[0], key=event[1]))
+            except: 
+                print(event[0], event[1])
+                raise
 
 
 class Item(pg.sprite.Sprite):

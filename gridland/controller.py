@@ -5,7 +5,8 @@ import pygame as pg
 import numpy as np
 from settings import *
 
-# TODO: Make equal-value state_action choices a random choice
+# TODO: Monte Carlo: Make equal-value state_action choices a random choice
+# TODO: Monte Carlo: Functions functions functions
 
 class AIController(multiprocessing.Process):
     def __init__(self):
@@ -129,4 +130,109 @@ class MonteCarloAgent(AIController):
         # Take from inqueue -> observation
         # Use observation to select next action
         # Post action to outqueue
-                
+               
+
+class SARSA(AIController):
+    def __init__(self):
+        super().__init__()
+        self.previous_sa = (None, None)
+        self.Q = dict()
+        self.actions = {
+            "up": (pg.KEYDOWN, pg.K_UP),
+            "down": (pg.KEYDOWN, pg.K_DOWN),
+            "left": (pg.KEYDOWN, pg.K_LEFT),
+            "right": (pg.KEYDOWN, pg.K_RIGHT)
+        }
+        self.episode_number = 1
+        self.epsilon = EXPLORATION_RATE
+        self.first_state = None
+
+
+    def run(self):
+        while True:
+            observation = self.inqueue.get()
+            
+            if observation is None:
+                print("Quitting...")
+                break
+            elif isinstance(observation, tuple) and observation[0] == "NEW_GAME":
+                self.new_game()
+            else:
+                self.act(observation)
+
+
+
+    def act(self, observation):
+
+        state = observation['state']
+        action = self.policy(state)
+
+        reward = observation['reward']
+        delta = reward + (REWARD_DISCOUNT*self.Q.get((state, action), 0))
+        old_qa = self.Q.get(self.previous_sa, 0)
+        self.Q[self.previous_sa] = old_qa + (ALPHA*(delta - old_qa))
+        self.previous_sa = (state, action)
+        
+
+        if self.first_state is None:
+            self.first_state = state
+        
+
+        if np.random.uniform() >= 1-self.epsilon:
+            random_action = np.random.randint(0, 4)
+            random_action = [a for a in self.actions][random_action]
+            self.outqueue.put(self.actions[random_action])
+        else:
+            self.outqueue.put(self.actions[action])
+
+        # Record old state_action
+        # Take New state_action
+        # Update Q_a
+
+
+    def policy(self, state):
+        best_value = -1000000000
+        best_action = None
+        for action in self.actions:
+            state_action = (state, action)
+            sa = self.Q.get(state_action, 0)
+            if sa > best_value:
+                best_action = action
+                best_value = sa
+        return best_action
+
+
+
+    def new_game(self):
+        # Reset episode state
+        self.episode_number += 1
+        self.previous_sa = (None, None)
+        self.epsilon = self.epsilon * EPSILON_DECAY
+
+        start_states = [(self.Q[(self.first_state, action)], action) for action in self.actions]
+        start_states.sort(key=lambda x: x[0])
+
+        print("Episode: ", self.episode_number, "Epsilon: ", self.epsilon, "V(start): ", start_states[-1])
+        self.outqueue.put((pg.KEYDOWN, pg.K_SPACE))
+
+        self.first_state = None
+        
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
