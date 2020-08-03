@@ -31,7 +31,7 @@ class AnimationImages:
                                 image_dict[entry.name][direction] = []
                             image = pg.image.load(file.path).convert()
                             height, width = image.get_size()
-                            
+
                             dims = (height*self.scale_factor, 
                                     width*self.scale_factor)
 
@@ -167,7 +167,7 @@ class AIPlayer(Player):
     def observe(self):
         obs = {}
         carrot_pos = [False, False, False, False]
-        
+
         # is carrot in up, down, left, right
         # player can see 1 tile around itself
         for carrot in self.game.carrots:
@@ -235,12 +235,12 @@ class Carrot(Item):
 
     def update(self):
         offset = BOB_RANGE * (self.tween(self.tween_step/BOB_RANGE) - 0.5)
-        
+
         self.rect.y = (self.y-(self.rect.height/8)) + \
             offset * self.tween_direction
 
         self.tween_step += BOB_SPEED
-       
+
         if self.tween_step > BOB_RANGE:
             self.tween_step = 0
             self.tween_direction *= -1

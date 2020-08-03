@@ -44,7 +44,7 @@ class Game:
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 print("player location: ", tile_object.x, tile_object.y)
-                self.player = AIPlayer(self, tile_object.x, tile_object.y)         
+                self.player = AIPlayer(self, tile_object.x, tile_object.y)
                # self.player = Player(self, tile_object.x, tile_object.y)
 
             if tile_object.name == "wall":
@@ -60,12 +60,12 @@ class Game:
 
     def reset(self):
         # initialize all variables anddo all the setup for a new game
-        
+
         self.chest = pg.sprite.Group()
         for chest in self.chest:
             self.all_sprites.remove(chest)
             chest.kill()
-        
+
         for carrot in self.carrots:
             self.all_sprites.remove(carrot)
             carrot.kill()
@@ -77,7 +77,7 @@ class Game:
             item.kill()
         self.items = pg.sprite.Group()
         self.total_carrots = 0
-        
+
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 print("player location: ", tile_object.x, tile_object.y)
@@ -125,8 +125,8 @@ class Game:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
         self.screen.blit(self.score_surface(self.player), (0, 0))
-       
-        # Yuck 
+
+        # Yuck
         try:
             if isinstance(self.player, AIPlayer) and DEBUG == True:
                 if not self.player.controller.debug_queue.empty():
@@ -150,9 +150,9 @@ class Game:
                 if isinstance(self.player, AIPlayer):
                     self.player.controller.quit()
                 self.quit()
-            
+
             self.player.events(event)
-            
+
             if self.go_screen == True and event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 self.go_screen = False
 
@@ -162,7 +162,7 @@ class Game:
         template = "Score: {}, Remaining Moves: {}, Pos: ({}, {})"
         template = template.format(
             player.score, MAX_ACTIONS-player.total_actions, player.rect.x, player.rect.y)
-       
+
         default_font = pg.font.get_default_font()
         return pg.font.Font(default_font, 18).render(template, True, (0,0,255))
 
@@ -186,11 +186,10 @@ class Game:
                 go_surf, (WIDTH/2-(go_surf.get_width()/2), HEIGHT/2))
 
             pg.display.flip()
-            
             self.events()
             self.update()
-            
-            
+
+
 # create the game object
 g = Game()
 g.show_start_screen()
