@@ -7,6 +7,7 @@ import pygame as pg
 import sys
 import queue
 from os import path
+from time import sleep
 from settings import *
 from sprites import *
 from tilemap import TiledMap, Camera

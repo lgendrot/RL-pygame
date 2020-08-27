@@ -1,6 +1,6 @@
 import pygame as pg
 from settings import *
-from controller import MonteCarloAgent, SARSA
+from controller import MonteCarloAgent, SARSA, SARSAL
 import pytweening as tween
 import os
 
@@ -13,7 +13,7 @@ class AnimationImages:
 
     def load_images(self):
         """Rather convoluted method to build a dictionary of animation images,
-            expects the structure of the base directory to be 
+            expects the structure of the base directory to be
             action/action_direction_index.png
 
         output: self.images[action][direction] = [file1, file2, file3]
@@ -32,10 +32,10 @@ class AnimationImages:
                             image = pg.image.load(file.path).convert()
                             height, width = image.get_size()
 
-                            dims = (height*self.scale_factor, 
+                            dims = (height*self.scale_factor,
                                     width*self.scale_factor)
 
-                            image = pg.transform.scale(image, dims) 
+                            image = pg.transform.scale(image, dims)
                             image_dict[entry.name][direction].append(image)
         return image_dict
 
@@ -126,7 +126,7 @@ class AIPlayer(Player):
         pg.time.set_timer(eventid, AGENT_DELAY)
 
         #self.controller = MonteCarloAgent()
-        self.controller = SARSA()
+        self.controller = SARSAL()
         self.controller.start()
 
         self.immediate_reward = 0
@@ -156,7 +156,7 @@ class AIPlayer(Player):
         # Is using super() clugey?
 
         # periodically a USEREVENT+1 is sent to the event queue
-        # That triggers the player's observe 
+        # That triggers the player's observe
         if event.type == pg.USEREVENT+1:
             if self.game.go_screen:
                 self.controller.inqueue.put(("NEW_GAME", self.score))
@@ -190,14 +190,14 @@ class AIPlayer(Player):
             event = self.controller.outqueue.get()
             try:
                 pg.event.post(pg.event.Event(event[0], key=event[1]))
-            except: 
+            except:
                 print(event[0], event[1])
                 raise
 
 
 class Item(pg.sprite.Sprite):
     def __init__(self, game, x, y, img_name=None, groups=[]):
-        self.groups = groups 
+        self.groups = groups
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
         self.image = self.load_image(img_name)
@@ -219,7 +219,7 @@ class Item(pg.sprite.Sprite):
 
 class Carrot(Item):
     def __init__(self, game, x, y, groups):
-        super().__init__(game, x, y, "carrot.png", groups) 
+        super().__init__(game, x, y, "carrot.png", groups)
         self._layer = 1
         self.tween = tween.easeInOutSine
         self.tween_step = 0

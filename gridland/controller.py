@@ -27,7 +27,7 @@ class AIController(multiprocessing.Process):
 
 
 
-class MonteCarloAgent(AIController): 
+class MonteCarloAgent(AIController):
     def __init__(self):
         super().__init__()
         self.V_s = dict()
@@ -71,7 +71,7 @@ class MonteCarloAgent(AIController):
                         G += (REWARD_DISCOUNT**(idx+1))*step['reward']
 
 
-                    state_action = (state, action) 
+                    state_action = (state, action)
                     self.Q_s[state_action] += ((1/self.N_s[state_action])*(G - self.Q_s[state_action]))
 
                 episode_list = []
@@ -90,7 +90,7 @@ class MonteCarloAgent(AIController):
                 best_action = None
                 best_v = -1000000
                 for action in actions:
-                    s_a = (observation['state'], action) 
+                    s_a = (observation['state'], action)
                     state_action_value = self.Q_s.get(s_a, 0)
                     if state_action_value >= best_v:
                         best_v = state_action_value
@@ -118,15 +118,15 @@ class MonteCarloAgent(AIController):
 
 
                 state_action = (observation['state'], observation['action'])
-                if self.N_s.get(state_action, 0): 
-                    self.N_s[state_action] += 1  
+                if self.N_s.get(state_action, 0):
+                    self.N_s[state_action] += 1
                 else:
                     self.N_s[state_action] = 1
 
 
                 if not self.Q_s.get(state_action, False):
                     self.Q_s[state_action] = 0
-                episode_list.append(observation) 
+                episode_list.append(observation)
 
             # For deep learning: Load up the model in __init__ and call it here
             # For table-based Q-learning:
@@ -227,8 +227,8 @@ class SARSA(AIController):
 
 
 
-class SARSAL:
-    def __init__(self, forward=True):
+class SARSAL(AIController):
+    def __init__(self, lamb=.8):
         super().__init__()
         self.previous_sa = (None, None)
         self.Q = dict()
@@ -241,6 +241,10 @@ class SARSAL:
         self.episode_number = 1
         self.epsilon = EXPLORATION_RATE
         self.first_state = None
+
+        # dict -> {(state, action): eligibility}
+        self.traces = {}
+        self.lamb = lamb
 
 
 
@@ -267,11 +271,16 @@ class SARSAL:
 
         reward = observation['reward']
         delta = reward + (REWARD_DISCOUNT*self.Q.get((state, action), 0))
-        # Update Q Value
-        #old_qa = self.Q.get(self.previous_sa, 0)
-        #self.Q[self.previous_sa] = old_qa + (ALPHA*(delta - old_qa))
-        #self.previous_sa = (state, action)
+        old_qa = self.Q.get(self.previous_sa, 0)
+        delta = delta - old_qa
+        self.traces[self.previous_sa] = self.traces.get(self.previous_sa, 0) + 1
+        # Update Q Value for ALL STATES in self.traces
 
+        for s_a in self.traces:
+            self.Q[s_a] = self.Q.get(s_a, 0) + (ALPHA*delta*self.traces[s_a])
+            self.traces[s_a] *= REWARD_DISCOUNT*self.lamb
+
+        self.previous_sa = (state, action)
 
         if self.first_state is None:
             self.first_state = state
@@ -286,6 +295,34 @@ class SARSAL:
 
 
 
+    def policy(self, state):
+        best_value = -1000000000
+        best_action = None
+        for action in self.actions:
+            state_action = (state, action)
+            sa = self.Q.get(state_action, 0)
+            if sa > best_value:
+                best_action = action
+                best_value = sa
+        return best_action
+
+
+
+    def new_game(self):
+        # Reset episode state
+        self.episode_number += 1
+        self.previous_sa = (None, None)
+        self.epsilon = self.epsilon * EPSILON_DECAY
+
+        # Janktastic way to get the best first_state, action pair from the Q table
+        start_states = [(self.Q.get((self.first_state, action), 0), action) for action in self.actions]
+        start_states.sort(key=lambda x: x[0])
+
+        print("Episode: ", self.episode_number, "Epsilon: ", self.epsilon, "V(start): ", start_states[-1])
+        self.outqueue.put((pg.KEYDOWN, pg.K_SPACE))
+
+        self.first_state = None
+        self.traces = {}
 
 
 
